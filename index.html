@@ -1,0 +1,1111 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gerador de Documento de Funil</title>
+<style>
+  :root {
+    --bg: #f4f2fb;
+    --card: #ffffff;
+    --text: #1e1b2e;
+    --muted: #6e6a80;
+    --border: #e6e1f5;
+    --accent: #7c3aed;
+    --accent-hover: #6d28d9;
+    --accent-soft: rgba(124, 58, 237, 0.1);
+    --gradient: linear-gradient(135deg, #4f46e5 0%, #9333ea 55%, #c026d3 100%);
+    --mono-bg: #1e1030;
+    --mono-text: #e9e4fb;
+    --success: #16a34a;
+    --danger: #dc2626;
+    --shadow: 0 1px 3px rgba(76, 29, 149, 0.08), 0 1px 2px rgba(76, 29, 149, 0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16131f;
+      --card: #211c33;
+      --text: #ece9f7;
+      --muted: #a79fc4;
+      --border: #362d4d;
+      --accent: #a78bfa;
+      --accent-hover: #c4b5fd;
+      --accent-soft: rgba(167, 139, 250, 0.14);
+      --gradient: linear-gradient(135deg, #4338ca 0%, #7e22ce 55%, #a21caf 100%);
+      --mono-bg: #120c1e;
+      --mono-text: #e9e4fb;
+      --success: #4ade80;
+      --danger: #f87171;
+      --shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 32px 16px 64px;
+  }
+  .wrap {
+    max-width: 820px;
+    margin: 0 auto;
+  }
+  .banner {
+    background: var(--gradient);
+    border-radius: 16px;
+    padding: 28px 28px 26px;
+    margin-bottom: 22px;
+    box-shadow: var(--shadow);
+  }
+  .banner h1 {
+    color: #fff;
+    font-size: 1.5rem;
+    margin: 0 0 6px;
+    letter-spacing: -0.01em;
+  }
+  .banner .subtitle {
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 0.88rem;
+    margin: 0;
+    max-width: 640px;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 22px 24px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow);
+  }
+  .card h2 {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--accent);
+    font-weight: 700;
+    margin: 0 0 18px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .field {
+    margin-bottom: 16px;
+  }
+  .field:last-child { margin-bottom: 0; }
+  .hint {
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+  input[type="text"], input[type="url"], input[type="number"] {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: 9px;
+    background: var(--card);
+    color: var(--text);
+    font-size: 0.92rem;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+  code {
+    background: var(--accent-soft);
+    color: var(--accent);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .row {
+    display: flex;
+    gap: 14px;
+  }
+  .row .field { flex: 1; }
+  textarea, .mono-box {
+    width: 100%;
+    font-family: "SFMono-Regular", Consolas, Menlo, monospace;
+    font-size: 0.8rem;
+    background: var(--mono-bg);
+    color: var(--mono-text);
+    border: none;
+    border-radius: 8px;
+    padding: 12px;
+    resize: vertical;
+    line-height: 1.5;
+    word-break: break-all;
+  }
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    border: 0;
+    clip: rect(0, 0, 0, 0);
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  .doc-preview {
+    background: var(--mono-bg);
+    border-radius: 10px;
+    padding: 22px 24px;
+    max-height: 560px;
+    overflow-y: auto;
+  }
+  .doc-h1 {
+    color: #fff;
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin: 0 0 6px;
+  }
+  .doc-h1:not(:first-child) {
+    margin-top: 26px;
+  }
+  .doc-h2 {
+    color: var(--accent-hover);
+    font-size: 0.92rem;
+    font-weight: 700;
+    margin: 20px 0 8px;
+  }
+  .doc-h2-meta {
+    color: var(--muted);
+    font-weight: 400;
+    font-size: 0.8rem;
+    word-break: break-all;
+  }
+  .doc-p {
+    color: var(--mono-text);
+    font-size: 0.85rem;
+    line-height: 1.65;
+    margin: 4px 0;
+  }
+  .doc-list {
+    margin: 6px 0 10px 18px;
+    padding: 0;
+    color: var(--mono-text);
+    font-size: 0.83rem;
+    line-height: 1.7;
+    word-break: break-all;
+  }
+  .doc-list-spaced li {
+    margin-bottom: 10px;
+  }
+  .doc-list-spaced li:last-child {
+    margin-bottom: 0;
+  }
+  .doc-divider {
+    border: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.14);
+    margin: 20px 0;
+  }
+  .doc-preview strong {
+    color: #fff;
+  }
+  .doc-preview code {
+    background: rgba(255, 255, 255, 0.1);
+    color: #e9d5ff;
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .doc-code-block {
+    margin: 8px 0 16px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 9px;
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.18);
+  }
+  .doc-code-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 12px;
+    background: rgba(255, 255, 255, 0.06);
+  }
+  .doc-code-toolbar span {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+  .doc-code {
+    margin: 0;
+    padding: 14px;
+    font-family: "SFMono-Regular", Consolas, Menlo, monospace;
+    font-size: 0.76rem;
+    color: var(--mono-text);
+    white-space: pre-wrap;
+    word-break: break-all;
+    line-height: 1.55;
+  }
+  button.copy-block {
+    background: none;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    color: rgba(255, 255, 255, 0.85);
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-size: 0.68rem;
+    font-weight: 600;
+  }
+  button.copy-block:hover {
+    border-color: var(--accent-hover);
+    color: var(--accent-hover);
+  }
+  button.copy-block.copied {
+    border-color: var(--success);
+    color: var(--success);
+  }
+
+  .step-card {
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+    margin-bottom: 16px;
+    background: var(--bg);
+  }
+  .step-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .step-index {
+    flex: 0 0 auto;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--gradient);
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .step-name {
+    flex: 1;
+    font-weight: 700;
+  }
+  button {
+    font-family: inherit;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s, color 0.15s;
+  }
+  button.remove-step {
+    flex: 0 0 auto;
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    color: var(--danger);
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-size: 0.75rem;
+  }
+  button.remove-step:hover:not(:disabled) {
+    border-color: var(--danger);
+  }
+  button.remove-step:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .variant-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .variant-row input:first-child { flex: 0 0 38%; }
+  .variant-row input:nth-child(2) { flex: 1; }
+  .variant-row-front input:first-child { flex: 0 0 26%; }
+  .variant-row-front input:nth-child(2) { flex: 0 0 26%; }
+  .variant-row-front input:nth-child(3) { flex: 1; }
+  .icon-btn {
+    flex: 0 0 auto;
+    width: 36px;
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    color: var(--danger);
+    border-radius: 8px;
+    font-size: 1rem;
+    line-height: 1;
+  }
+  .icon-btn:hover:not(:disabled) {
+    border-color: var(--danger);
+  }
+  .icon-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  button.add-variant, button.add-step {
+    width: 100%;
+    background: var(--accent-soft);
+    border: 1.5px dashed var(--accent);
+    color: var(--accent);
+    padding: 9px;
+    border-radius: 9px;
+    font-size: 0.82rem;
+    font-weight: 600;
+  }
+  button.add-variant:hover, button.add-step:hover {
+    background: var(--accent);
+    color: #fff;
+  }
+  .output-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+  .output-label span:first-child {
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+  .output-actions {
+    display: flex;
+    gap: 8px;
+  }
+  button.copy, button.download {
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    color: var(--text);
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    font-weight: 600;
+  }
+  button.copy:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  button.copy.copied {
+    border-color: var(--success);
+    color: var(--success);
+  }
+  button.download {
+    background: var(--gradient);
+    color: #fff;
+    border-color: transparent;
+  }
+  button.download:hover {
+    filter: brightness(1.08);
+  }
+  .funnel-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .funnel-tab {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    border: 1.5px solid var(--border);
+    border-radius: 999px;
+    padding: 6px 6px 6px 14px;
+    background: var(--card);
+  }
+  .funnel-tab.active {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .funnel-tab-label {
+    background: none;
+    border: none;
+    color: var(--text);
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 0;
+  }
+  .funnel-tab.active .funnel-tab-label {
+    color: var(--accent);
+  }
+  .funnel-tab-remove {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    font-size: 0.95rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+  }
+  .funnel-tab-remove:hover:not(:disabled) {
+    color: var(--danger);
+  }
+  .funnel-tab-remove:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+  button.add-funnel {
+    background: var(--accent-soft);
+    border: 1.5px dashed var(--accent);
+    color: var(--accent);
+    padding: 7px 16px;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+  button.add-funnel:hover {
+    background: var(--accent);
+    color: #fff;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="banner">
+    <h1>Gerador de Documento de Funil</h1>
+    <p class="subtitle">Preencha os dados do funil e de cada etapa (checkout, upsells, downsells). O documento final &mdash; com links de checkout, script de tracking e script de conversão &mdash; é montado automaticamente e pode ser baixado para enviar à equipe.</p>
+  </div>
+
+  <div class="card">
+    <h2>Conta BuyGoods</h2>
+    <div class="field">
+      <label for="documentAccount">ID da conta (parâmetro <code>account_id=</code> / <code>a=</code>)</label>
+      <input type="text" id="documentAccount" placeholder="ex: 12670">
+      <div class="hint">Único para todo o documento — usado no front e em todos os funis. O token de conversão (<code>t=</code>) continua configurado separadamente em cada grupo front e em cada funil, já que ele costuma ser diferente entre eles.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Páginas de venda (Front) — compartilhadas entre todos os funis</h2>
+    <div class="hint" style="margin-bottom: 12px;">Cada grupo representa um conjunto de URLs que vendem exatamente os mesmos produtos. Esses grupos não pertencem a nenhum funil específico — cadastre uma vez e reutilize: cada produto tem sua própria URL de próxima página, que pode levar a qualquer um dos funis abaixo. Cada grupo gera seu próprio script de tracking, script de conversão e links de checkout — o disclaimer é único para todo o front, já que depende só da conta.</div>
+    <div id="frontGroups"></div>
+    <button type="button" class="add-step" id="addFrontGroupBtn">+ Adicionar grupo front</button>
+  </div>
+
+  <div class="card">
+    <h2>Funis</h2>
+    <div class="funnel-tabs" id="funnelTabs"></div>
+  </div>
+
+  <div class="card">
+    <h2>Dados do funil selecionado</h2>
+    <div class="field">
+      <label for="funnelName">Nome do funil</label>
+      <input type="text" id="funnelName" placeholder="ex: Funil A - 6 Bottles">
+    </div>
+    <div class="field">
+      <label for="funnelTrigger">Gatilho (compra no front que leva a este funil)</label>
+      <input type="text" id="funnelTrigger" placeholder="ex: 6 Bottles">
+      <div class="hint">Descreve qual compra no front direciona o cliente para este funil.</div>
+    </div>
+    <div class="field">
+      <label for="token">Token de conversão (parâmetro <code>t=</code>)</label>
+      <input type="text" id="token" placeholder="ex: 90a9ffbb2ce5276b3688d1818e6bc574">
+      <div class="hint">Único para este funil — usado no script de conversão das etapas dele. A conta (<code>account_id=</code>) é a mesma para todo o documento, configurada no card "Conta BuyGoods", acima.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Etapas deste funil</h2>
+    <div id="stepsContainer"></div>
+    <button type="button" class="add-step" id="addStepBtn">+ Adicionar etapa</button>
+  </div>
+
+  <div class="card">
+    <h2>Documento final (todos os funis)</h2>
+    <div class="output-label">
+      <span>Pronto para enviar à equipe</span>
+      <div class="output-actions">
+        <button class="copy" data-target="docOut">Copiar tudo</button>
+        <button class="download" id="downloadBtn">Baixar .txt</button>
+      </div>
+    </div>
+    <div id="docPreview" class="doc-preview"></div>
+    <textarea id="docOut" class="visually-hidden" readonly></textarea>
+  </div>
+</div>
+
+<script>
+(function () {
+  let funnelIdCounter = 0;
+  let stepIdCounter = 0;
+  let variantIdCounter = 0;
+  let frontGroupIdCounter = 0;
+  let frontUrlIdCounter = 0;
+
+  function newVariant(label, codname, nextUrl) {
+    return { id: ++variantIdCounter, label: label || '', codname: codname || '', nextUrl: nextUrl || '' };
+  }
+  function newFrontUrl(url) {
+    return { id: ++frontUrlIdCounter, url: url || '' };
+  }
+  function newFrontGroup() {
+    return { id: ++frontGroupIdCounter, token: '', urls: [newFrontUrl()], variants: [newVariant()] };
+  }
+  function newStep(name) {
+    return { id: ++stepIdCounter, name: name || '', pageUrl: '', nextUrl: '', declineUrl: '', variants: [newVariant()] };
+  }
+  function newFunnel(name) {
+    return { id: ++funnelIdCounter, name: name || '', trigger: '', token: '', steps: [newStep('Checkout')] };
+  }
+
+  let documentAccount = '';
+  let frontGroups = [newFrontGroup()];
+  let funnels = [newFunnel('')];
+  let activeFunnelId = funnels[0].id;
+
+  function getActiveFunnel() {
+    return funnels.find(f => f.id === activeFunnelId);
+  }
+
+  const documentAccountEl = document.getElementById('documentAccount');
+  const funnelTabsEl = document.getElementById('funnelTabs');
+  const funnelNameEl = document.getElementById('funnelName');
+  const funnelTriggerEl = document.getElementById('funnelTrigger');
+  const tokenEl = document.getElementById('token');
+  const frontGroupsContainer = document.getElementById('frontGroups');
+  const addFrontGroupBtn = document.getElementById('addFrontGroupBtn');
+  const stepsContainer = document.getElementById('stepsContainer');
+  const addStepBtn = document.getElementById('addStepBtn');
+  const docOut = document.getElementById('docOut');
+  const docPreview = document.getElementById('docPreview');
+  const downloadBtn = document.getElementById('downloadBtn');
+
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
+  const DIVIDER_LINE = '-'.repeat(60);
+
+  function blocksToPlainText(blocks) {
+    const lines = [];
+    blocks.forEach(block => {
+      if (block.type === 'title' || block.type === 'heading') {
+        const suffix = block.meta ? ` — ${block.meta}` : '';
+        lines.push(block.text.toUpperCase() + suffix);
+      } else if (block.type === 'label' || block.type === 'text' || block.type === 'code') {
+        lines.push(block.text);
+      } else if (block.type === 'list') {
+        block.items.forEach((item, idx) => {
+          lines.push(`- ${item}`);
+          if (block.spaced && idx < block.items.length - 1) lines.push('');
+        });
+      } else if (block.type === 'divider') {
+        lines.push(DIVIDER_LINE);
+      }
+      lines.push('');
+    });
+    while (lines.length && lines[lines.length - 1] === '') lines.pop();
+    return lines.join('\n');
+  }
+
+  function renderDocPreview(blocks) {
+    const html = [];
+    blocks.forEach(block => {
+      if (block.type === 'title') {
+        html.push(`<div class="doc-h1">${escapeHtml(block.text)}</div>`);
+      } else if (block.type === 'heading') {
+        const suffix = block.meta ? ` <span class="doc-h2-meta">— ${escapeHtml(block.meta)}</span>` : '';
+        html.push(`<div class="doc-h2">${escapeHtml(block.text)}${suffix}</div>`);
+      } else if (block.type === 'label') {
+        html.push(`<div class="doc-p"><strong>${escapeHtml(block.text)}</strong></div>`);
+      } else if (block.type === 'text') {
+        html.push(`<div class="doc-p">${escapeHtml(block.text)}</div>`);
+      } else if (block.type === 'list') {
+        const listClass = block.spaced ? 'doc-list doc-list-spaced' : 'doc-list';
+        html.push(`<ul class="${listClass}">${block.items.map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul>`);
+      } else if (block.type === 'code') {
+        html.push(`<div class="doc-code-block">
+          <div class="doc-code-toolbar">
+            <span>${escapeHtml(block.lang || 'código')}</span>
+            <button type="button" class="copy-block" data-code="${encodeURIComponent(block.text)}">Copiar</button>
+          </div>
+          <pre class="doc-code">${escapeHtml(block.text)}</pre>
+        </div>`);
+      } else if (block.type === 'divider') {
+        html.push('<hr class="doc-divider">');
+      }
+    });
+    docPreview.innerHTML = html.join('');
+  }
+
+  function toBase64(str) {
+    if (!str) return '';
+    const bytes = new TextEncoder().encode(str);
+    let binary = '';
+    bytes.forEach(b => binary += String.fromCharCode(b));
+    return btoa(binary);
+  }
+
+  function buildScript(account, codname) {
+    const acc = account || 'ID_DA_CONTA';
+    const product = codname || '';
+    return '<script>var mysrc = "https://tracking.buygoods.com/track/?a=' + acc + '&firstcookie=0"+"&tracking_redirect=&referrer="+encodeURIComponent(document.referrer)+"&sessid2="+ReadCookie(\'sessid2\')+"&product=' + product + '&vid1=&vid2=&vid3=&caller_url="+encodeURIComponent(window.location.href); if(typeof add_to_cart !== \'undefined\') { mysrc = mysrc+\'&add_to_cart=\'+add_to_cart; } var newScript = document.createElement(\'script\'); newScript.type = \'text/javascript\'; newScript.defer = true; newScript.src = mysrc; var s = document.getElementsByTagName(\'script\')[0]; s.parentNode.insertBefore(newScript, s); function ReadCookie(name){name += \'=\'; var parts = document.cookie.split(/;\\s*/);for (var i = 0; i < parts.length; i++) {var part = parts[i]; if (part.indexOf(name) == 0) return part.substring(name.length)} return \'\';}<\/script>';
+  }
+
+  function buildFrontConversionScript(account, token) {
+    const acc = account || 'ID_DA_CONTA';
+    const tok = token || 'TOKEN_DE_CONVERSAO';
+    return '<script type="text/javascript">setTimeout(function () {var i = document.createElement("iframe"),oid = new URLSearchParams(window.location.search);i.async = true;i.style="display:none";i.setAttribute("src", "https://buygoods.com/affiliates/go/conversion/iframe/bg?a=' + acc + '&t=' + tok + '&s="+ReadCookie(\'sessid2\'));document.body.appendChild(i);}, 1000);<\/script>';
+  }
+
+  function buildUpsellConversionScript(account, token) {
+    const acc = account || 'ID_DA_CONTA';
+    const tok = token || 'TOKEN_DE_CONVERSAO';
+    return '<script type="text/javascript">var i = document.createElement("iframe"),oid = new URLSearchParams(window.location.search);i.async = true;i.style="display:none";i.setAttribute("src", "https://buygoods.com/affiliates/go/conversion/iframe/bg?a=' + acc + '&t=' + tok + '&conversion=1&s="+ReadCookie(\'sessid2\')+"&o="+oid.get(\'order_id_global\')+"&ut="+oid.get(\'token\'));document.body.appendChild(i);<\/script>';
+  }
+
+  function buildDisclaimerScript(account) {
+    const acc = account || 'ID_DA_CONTA';
+    return '<span id=disclaimer></span>\n<script src="https://display.buygoods.com/v1/disclaimer?id=disclaimer&account_id=' + acc + '"><\/script>';
+  }
+
+  function findDuplicateLabels(variants) {
+    const seen = new Set();
+    const dupes = new Set();
+    variants.forEach(v => {
+      const label = v.label.trim();
+      if (!label) return;
+      if (seen.has(label)) dupes.add(label);
+      seen.add(label);
+    });
+    return dupes;
+  }
+
+  function duplicateLabelWarningHtml(variants) {
+    const dupes = findDuplicateLabels(variants);
+    if (!dupes.size) return '';
+    const list = Array.from(dupes).map(l => `"${escapeHtml(l)}"`).join(', ');
+    return `<div class="hint" style="color: var(--danger); margin-top: 6px;">Rótulo${dupes.size > 1 ? 's' : ''} repetido${dupes.size > 1 ? 's' : ''} aqui: ${list} — confira se os codenames de cada linha estão corretos, já que rótulos iguais costumam indicar uma linha duplicada ou faltando.</div>`;
+  }
+
+  function renderStepCard(step, index, totalSteps) {
+    const variantsHtml = step.variants.map(v => `
+        <div class="variant-row">
+          <input type="text" data-field="label" data-step-id="${step.id}" data-variant-id="${v.id}" value="${escapeHtml(v.label)}" placeholder="Rótulo (ex: 3 Bottles)">
+          <input type="text" data-field="codname" data-step-id="${step.id}" data-variant-id="${v.id}" value="${escapeHtml(v.codname)}" placeholder="Codname (ex: xel3u1_2)">
+          <button type="button" class="icon-btn" data-action="remove-variant" data-step-id="${step.id}" data-variant-id="${v.id}" title="Remover variante" ${step.variants.length <= 1 ? 'disabled' : ''}>&times;</button>
+        </div>`).join('');
+
+    return `
+    <div class="step-card">
+      <div class="step-header">
+        <span class="step-index">${index + 1}</span>
+        <input type="text" class="step-name" data-field="name" data-step-id="${step.id}" value="${escapeHtml(step.name)}" placeholder="Nome da etapa (ex: Upsell 1)">
+        <button type="button" class="remove-step" data-action="remove-step" data-step-id="${step.id}" ${totalSteps <= 1 ? 'disabled' : ''}>Remover etapa</button>
+      </div>
+      <div class="field">
+        <label>URL desta página (opcional)</label>
+        <input type="url" data-field="pageUrl" data-step-id="${step.id}" value="${escapeHtml(step.pageUrl)}" placeholder="https://exemplo.com/pagina-desta-etapa">
+        <div class="hint">Aparece ao lado do título da etapa no documento, pra equipe saber onde colar os scripts e links abaixo. Se vazio, o documento assume automaticamente o link de recusa da etapa anterior (não se aplica à primeira etapa — preencha aqui pra ela).</div>
+      </div>
+      <div class="field">
+        <label>URL da próxima página (redirect do link de aceite)</label>
+        <input type="url" data-field="nextUrl" data-step-id="${step.id}" value="${escapeHtml(step.nextUrl)}" placeholder="https://exemplo.com/proxima-pagina">
+      </div>
+      <div class="field">
+        <label>Link de recusa (Próximo upsell ou no Thank you)</label>
+        <input type="url" data-field="declineUrl" data-step-id="${step.id}" value="${escapeHtml(step.declineUrl)}" placeholder="https://exemplo.com/pagina-de-recusa">
+      </div>
+      <div class="field">
+        <label>Variantes / ofertas desta etapa</label>
+        <div class="variants">${variantsHtml}</div>
+        <button type="button" class="add-variant" data-action="add-variant" data-step-id="${step.id}">+ Adicionar variante</button>
+        ${duplicateLabelWarningHtml(step.variants)}
+      </div>
+    </div>`;
+  }
+
+  function renderStepsDOM() {
+    const funnel = getActiveFunnel();
+    if (!funnel) { stepsContainer.innerHTML = ''; return; }
+    stepsContainer.innerHTML = funnel.steps.map((s, i) => renderStepCard(s, i, funnel.steps.length)).join('');
+  }
+
+  function renderFrontGroupCard(group, index, totalGroups) {
+    const urlsHtml = group.urls.map(u => `
+        <div class="variant-row">
+          <input type="url" style="flex:1" data-front-field="url" data-group-id="${group.id}" data-url-id="${u.id}" value="${escapeHtml(u.url)}" placeholder="https://exemplo.com/pagina-front">
+          <button type="button" class="icon-btn" data-action="remove-front-url" data-group-id="${group.id}" data-url-id="${u.id}" title="Remover URL" ${group.urls.length <= 1 ? 'disabled' : ''}>&times;</button>
+        </div>`).join('');
+
+    const variantsHtml = group.variants.map(v => `
+        <div class="variant-row variant-row-front">
+          <input type="text" data-front-field="label" data-group-id="${group.id}" data-variant-id="${v.id}" value="${escapeHtml(v.label)}" placeholder="Rótulo (ex: 6 Bottles)">
+          <input type="text" data-front-field="codname" data-group-id="${group.id}" data-variant-id="${v.id}" value="${escapeHtml(v.codname)}" placeholder="Codname (ex: xel6)">
+          <input type="url" data-front-field="nextUrl" data-group-id="${group.id}" data-variant-id="${v.id}" value="${escapeHtml(v.nextUrl)}" placeholder="URL da próxima página para este produto">
+          <button type="button" class="icon-btn" data-action="remove-front-variant" data-group-id="${group.id}" data-variant-id="${v.id}" title="Remover produto" ${group.variants.length <= 1 ? 'disabled' : ''}>&times;</button>
+        </div>`).join('');
+
+    return `
+    <div class="step-card">
+      <div class="step-header">
+        <span class="step-index">${index + 1}</span>
+        <span class="step-name">Grupo Front ${index + 1}</span>
+        <button type="button" class="remove-step" data-action="remove-front-group" data-group-id="${group.id}" ${totalGroups <= 1 ? 'disabled' : ''}>Remover grupo</button>
+      </div>
+      <div class="field">
+        <label>Token de conversão (parâmetro <code>t=</code>)</label>
+        <input type="text" data-front-field="token" data-group-id="${group.id}" value="${escapeHtml(group.token)}" placeholder="ex: 90a9ffbb2ce5276b3688d1818e6bc574">
+      </div>
+      <div class="field">
+        <label>URLs deste grupo (páginas que vendem os mesmos produtos)</label>
+        <div class="urls">${urlsHtml}</div>
+        <button type="button" class="add-variant" data-action="add-front-url" data-group-id="${group.id}">+ Adicionar URL</button>
+      </div>
+      <div class="field">
+        <label>Produtos vendidos nestas URLs (cada um com sua própria URL de próxima página — produtos diferentes podem levar a funis diferentes)</label>
+        <div class="variants">${variantsHtml}</div>
+        <button type="button" class="add-variant" data-action="add-front-variant" data-group-id="${group.id}">+ Adicionar produto</button>
+        ${duplicateLabelWarningHtml(group.variants)}
+      </div>
+    </div>`;
+  }
+
+  function renderFrontGroupsDOM() {
+    frontGroupsContainer.innerHTML = frontGroups.map((g, i) => renderFrontGroupCard(g, i, frontGroups.length)).join('');
+  }
+
+  function renderFunnelTabs() {
+    const tabsHtml = funnels.map(f => `
+      <div class="funnel-tab ${f.id === activeFunnelId ? 'active' : ''}">
+        <button type="button" class="funnel-tab-label" data-action="select-funnel" data-funnel-id="${f.id}">${escapeHtml(f.name.trim() || 'Novo funil')}</button>
+        <button type="button" class="funnel-tab-remove" data-action="remove-funnel" data-funnel-id="${f.id}" title="Remover funil" ${funnels.length <= 1 ? 'disabled' : ''}>&times;</button>
+      </div>`).join('');
+    funnelTabsEl.innerHTML = tabsHtml + '<button type="button" class="add-funnel" data-action="add-funnel">+ Adicionar funil</button>';
+  }
+
+  function renderActiveFunnelForm() {
+    const funnel = getActiveFunnel();
+    if (!funnel) return;
+    funnelNameEl.value = funnel.name;
+    funnelTriggerEl.value = funnel.trigger;
+    tokenEl.value = funnel.token;
+  }
+
+  function buildFrontBlocks() {
+    const blocks = [];
+    const account = documentAccount.trim();
+    blocks.push({ type: 'title', text: 'Página(s) de Venda (Front)' });
+    blocks.push({ type: 'text', text: `Account ID: ${account || 'ID_DA_CONTA'}` });
+    blocks.push({ type: 'label', text: 'Disclaimer (colar em todas as páginas de venda front listadas abaixo, em todos os grupos):' });
+    blocks.push({ type: 'code', lang: 'html', text: buildDisclaimerScript(account) });
+    blocks.push({ type: 'divider' });
+
+    frontGroups.forEach((group, gi) => {
+      const token = group.token.trim();
+      const urls = group.urls.map(u => u.url.trim()).filter(Boolean);
+      const frontCodnames = group.variants.map(v => v.codname.trim()).filter(Boolean).join(',');
+
+      blocks.push({ type: 'heading', text: `Grupo Front ${gi + 1}` });
+      blocks.push({ type: 'label', text: 'URLs deste grupo:' });
+      blocks.push({ type: 'list', items: urls.length ? urls : ['(nenhuma URL preenchida)'] });
+      blocks.push({ type: 'label', text: 'Script de Tracking (colar em todas as URLs acima):' });
+      blocks.push({ type: 'code', lang: 'html', text: buildScript(account, frontCodnames) });
+      blocks.push({ type: 'label', text: 'Script de Conversão (colar em todas as URLs acima, separado do script de tracking):' });
+      blocks.push({ type: 'code', lang: 'html', text: buildFrontConversionScript(account, token) });
+
+      const frontListItems = [];
+      group.variants.forEach(v => {
+        const label = v.label.trim() || '(sem rótulo)';
+        const codname = v.codname.trim();
+        if (!codname) {
+          frontListItems.push(`${label}: (codname não preenchido)`);
+          return;
+        }
+        const link = `https://buygoods.com/secure/checkout.html?account_id=${account || 'ID_DA_CONTA'}&product_codename=${codname}&redirect=${toBase64(v.nextUrl.trim())}`;
+        frontListItems.push(`${label}: ${link}`);
+      });
+      blocks.push({ type: 'label', text: 'Links de checkout:' });
+      blocks.push({ type: 'list', items: frontListItems, spaced: true });
+
+      blocks.push({ type: 'divider' });
+    });
+
+    return blocks;
+  }
+
+  function buildFunnelBlocks(funnel, fi) {
+    const blocks = [];
+    const account = documentAccount.trim();
+    const token = funnel.token.trim();
+    const trigger = funnel.trigger.trim();
+
+    blocks.push({ type: 'title', text: `Funil ${fi + 1}: ${funnel.name.trim() || '(sem nome)'}` });
+    if (trigger) blocks.push({ type: 'text', text: `Gatilho: compras no front de ${trigger} caem neste funil.` });
+    blocks.push({ type: 'text', text: `Account ID: ${account || 'ID_DA_CONTA'}` });
+    blocks.push({ type: 'divider' });
+
+    funnel.steps.forEach((step, i) => {
+      const codnames = step.variants.map(v => v.codname.trim()).filter(Boolean).join(',');
+
+      const previousStep = funnel.steps[i - 1];
+      const explicitPageUrl = step.pageUrl.trim();
+      const inferredPageUrl = previousStep ? (previousStep.declineUrl.trim() || '(link de recusa da etapa anterior não preenchido)') : null;
+      const pageUrl = explicitPageUrl || inferredPageUrl;
+      const headingBlock = { type: 'heading', text: `Etapa ${i + 1} — ${step.name || '(sem nome)'}` };
+      if (pageUrl) headingBlock.meta = pageUrl;
+      blocks.push(headingBlock);
+      blocks.push({ type: 'label', text: 'Script de Tracking (colar nesta página):' });
+      blocks.push({ type: 'code', lang: 'html', text: buildScript(account, codnames) });
+      blocks.push({ type: 'label', text: 'Script de Conversão (colar nesta página, separado do script de tracking acima):' });
+      blocks.push({ type: 'code', lang: 'html', text: buildUpsellConversionScript(account, token) });
+
+      const listItems = [];
+      step.variants.forEach(v => {
+        const label = v.label.trim() || '(sem rótulo)';
+        const codname = v.codname.trim();
+        if (!codname) {
+          listItems.push(`${label}: (codname não preenchido)`);
+          return;
+        }
+        const link = `https://buygoods.com/secure/upsell/?account_id=${account || 'ID_DA_CONTA'}&product_codename=${codname}&redirect=${toBase64(step.nextUrl.trim())}`;
+        listItems.push(`${label}: ${link}`);
+      });
+      blocks.push({ type: 'label', text: 'Links de checkout:' });
+      blocks.push({ type: 'list', items: listItems, spaced: true });
+
+      blocks.push({ type: 'text', text: `Link de recusa (No Thank you): ${step.declineUrl.trim() || '(não preenchido)'}` });
+      blocks.push({ type: 'divider' });
+    });
+
+    return blocks;
+  }
+
+  function renderDoc() {
+    const allBlocks = [...buildFrontBlocks()];
+    funnels.forEach((funnel, fi) => {
+      allBlocks.push(...buildFunnelBlocks(funnel, fi));
+    });
+
+    docOut.value = blocksToPlainText(allBlocks);
+    renderDocPreview(allBlocks);
+  }
+
+  stepsContainer.addEventListener('input', (e) => {
+    const t = e.target;
+    if (!t.dataset.field) return;
+    const funnel = getActiveFunnel();
+    if (!funnel) return;
+    const stepId = Number(t.dataset.stepId);
+    const step = funnel.steps.find(s => s.id === stepId);
+    if (!step) return;
+    if (t.dataset.variantId) {
+      const variant = step.variants.find(v => v.id === Number(t.dataset.variantId));
+      if (!variant) return;
+      variant[t.dataset.field] = t.value;
+    } else {
+      step[t.dataset.field] = t.value;
+    }
+    renderDoc();
+  });
+
+  stepsContainer.addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-action]');
+    if (!btn) return;
+    const funnel = getActiveFunnel();
+    if (!funnel) return;
+    const action = btn.dataset.action;
+    const stepId = Number(btn.dataset.stepId);
+    const step = funnel.steps.find(s => s.id === stepId);
+    if (!step) return;
+
+    if (action === 'remove-step') {
+      if (funnel.steps.length <= 1) return;
+      funnel.steps = funnel.steps.filter(s => s.id !== stepId);
+    } else if (action === 'add-variant') {
+      step.variants.push(newVariant());
+    } else if (action === 'remove-variant') {
+      if (step.variants.length <= 1) return;
+      const variantId = Number(btn.dataset.variantId);
+      step.variants = step.variants.filter(v => v.id !== variantId);
+    } else {
+      return;
+    }
+    renderStepsDOM();
+    renderDoc();
+  });
+
+  addStepBtn.addEventListener('click', () => {
+    const funnel = getActiveFunnel();
+    if (!funnel) return;
+    funnel.steps.push(newStep(''));
+    renderStepsDOM();
+    renderDoc();
+  });
+
+  frontGroupsContainer.addEventListener('input', (e) => {
+    const t = e.target;
+    if (!t.dataset.frontField) return;
+    const group = frontGroups.find(g => g.id === Number(t.dataset.groupId));
+    if (!group) return;
+    if (t.dataset.frontField === 'url') {
+      const url = group.urls.find(u => u.id === Number(t.dataset.urlId));
+      if (!url) return;
+      url.url = t.value;
+    } else if (t.dataset.frontField === 'token') {
+      group.token = t.value;
+    } else {
+      const variant = group.variants.find(v => v.id === Number(t.dataset.variantId));
+      if (!variant) return;
+      variant[t.dataset.frontField] = t.value;
+    }
+    renderDoc();
+  });
+
+  frontGroupsContainer.addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-action]');
+    if (!btn) return;
+    const action = btn.dataset.action;
+    const group = frontGroups.find(g => g.id === Number(btn.dataset.groupId));
+    if (!group) return;
+
+    if (action === 'remove-front-group') {
+      if (frontGroups.length <= 1) return;
+      frontGroups = frontGroups.filter(g => g.id !== group.id);
+    } else if (action === 'add-front-url') {
+      group.urls.push(newFrontUrl());
+    } else if (action === 'remove-front-url') {
+      if (group.urls.length <= 1) return;
+      const urlId = Number(btn.dataset.urlId);
+      group.urls = group.urls.filter(u => u.id !== urlId);
+    } else if (action === 'add-front-variant') {
+      group.variants.push(newVariant());
+    } else if (action === 'remove-front-variant') {
+      if (group.variants.length <= 1) return;
+      const variantId = Number(btn.dataset.variantId);
+      group.variants = group.variants.filter(v => v.id !== variantId);
+    } else {
+      return;
+    }
+    renderFrontGroupsDOM();
+    renderDoc();
+  });
+
+  addFrontGroupBtn.addEventListener('click', () => {
+    frontGroups.push(newFrontGroup());
+    renderFrontGroupsDOM();
+    renderDoc();
+  });
+
+  documentAccountEl.addEventListener('input', () => {
+    documentAccount = documentAccountEl.value;
+    renderDoc();
+  });
+
+  const funnelFieldMap = { funnelName: 'name', funnelTrigger: 'trigger', token: 'token' };
+  [funnelNameEl, funnelTriggerEl, tokenEl].forEach(el => {
+    el.addEventListener('input', () => {
+      const funnel = getActiveFunnel();
+      if (!funnel) return;
+      funnel[funnelFieldMap[el.id]] = el.value;
+      if (el === funnelNameEl) renderFunnelTabs();
+      renderDoc();
+    });
+  });
+
+  funnelTabsEl.addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-action]');
+    if (!btn) return;
+    const action = btn.dataset.action;
+
+    if (action === 'add-funnel') {
+      const f = newFunnel('');
+      funnels.push(f);
+      activeFunnelId = f.id;
+    } else {
+      const funnelId = Number(btn.dataset.funnelId);
+      if (action === 'select-funnel') {
+        activeFunnelId = funnelId;
+      } else if (action === 'remove-funnel') {
+        if (funnels.length <= 1) return;
+        funnels = funnels.filter(f => f.id !== funnelId);
+        if (activeFunnelId === funnelId) activeFunnelId = funnels[0].id;
+      } else {
+        return;
+      }
+    }
+
+    renderFunnelTabs();
+    renderActiveFunnelForm();
+    renderStepsDOM();
+    renderDoc();
+  });
+
+  downloadBtn.addEventListener('click', () => {
+    const blob = new Blob([docOut.value], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const names = funnels.map(f => f.name.trim()).filter(Boolean);
+    const base = names.length ? names.join('_') : 'funis';
+    const slug = base
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '') || 'funis';
+    a.href = url;
+    a.download = `${slug}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+
+  docPreview.addEventListener('click', async (e) => {
+    const btn = e.target.closest('button.copy-block');
+    if (!btn) return;
+    const code = decodeURIComponent(btn.dataset.code);
+    try {
+      await navigator.clipboard.writeText(code);
+    } catch (err) {
+      const helper = document.createElement('textarea');
+      helper.value = code;
+      helper.className = 'visually-hidden';
+      document.body.appendChild(helper);
+      helper.select();
+      document.execCommand('copy');
+      document.body.removeChild(helper);
+    }
+    btn.textContent = 'Copiado!';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = 'Copiar';
+      btn.classList.remove('copied');
+    }, 1500);
+  });
+
+  document.querySelectorAll('button.copy').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const target = document.getElementById(btn.dataset.target);
+      const value = target.value;
+      if (!value) return;
+      try {
+        await navigator.clipboard.writeText(value);
+        btn.textContent = 'Copiado!';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.textContent = 'Copiar tudo';
+          btn.classList.remove('copied');
+        }, 1500);
+      } catch (e) {
+        target.select();
+        document.execCommand('copy');
+      }
+    });
+  });
+
+  renderFrontGroupsDOM();
+  renderFunnelTabs();
+  renderActiveFunnelForm();
+  renderStepsDOM();
+  renderDoc();
+})();
+</script>
+</body>
+</html>
