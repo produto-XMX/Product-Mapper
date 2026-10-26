@@ -460,6 +460,34 @@
     background: var(--accent);
     color: #fff;
   }
+  .project-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .save-status {
+    font-size: 0.78rem;
+    color: var(--muted);
+  }
+  button.secondary {
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    color: var(--text);
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    font-weight: 600;
+  }
+  button.secondary:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  button.secondary.danger:hover {
+    border-color: var(--danger);
+    color: var(--danger);
+  }
 </style>
 </head>
 <body>
@@ -467,6 +495,20 @@
   <div class="banner">
     <h1>Gerador de Documento de Funil</h1>
     <p class="subtitle">Preencha os dados do funil e de cada etapa (checkout, upsells, downsells). O documento final &mdash; com links de checkout, script de tracking e script de conversão &mdash; é montado automaticamente e pode ser baixado para enviar à equipe.</p>
+  </div>
+
+  <div class="card">
+    <h2>Projeto</h2>
+    <div class="project-bar">
+      <span class="save-status" id="saveStatus">Rascunho salvo automaticamente neste navegador.</span>
+      <div class="output-actions">
+        <button type="button" class="secondary" id="saveProjectBtn">Salvar projeto (.json)</button>
+        <button type="button" class="secondary" id="openProjectBtn">Abrir projeto</button>
+        <button type="button" class="secondary danger" id="newProjectBtn">Novo documento</button>
+      </div>
+    </div>
+    <div class="hint" style="margin-top: 10px;">Tudo que você preenche fica salvo neste navegador — fechar a aba não perde o trabalho. Para mandar para revisão ou corrigir depois em outro computador, salve o projeto (.json) junto com o .txt na task: quem revisar abre o arquivo aqui, corrige os campos e gera o documento de novo.</div>
+    <input type="file" id="openProjectInput" accept=".json,application/json" hidden>
   </div>
 
   <div class="card">
@@ -573,6 +615,113 @@
   const docOut = document.getElementById('docOut');
   const docPreview = document.getElementById('docPreview');
   const downloadBtn = document.getElementById('downloadBtn');
+  const saveStatusEl = document.getElementById('saveStatus');
+  const saveProjectBtn = document.getElementById('saveProjectBtn');
+  const openProjectBtn = document.getElementById('openProjectBtn');
+  const openProjectInput = document.getElementById('openProjectInput');
+  const newProjectBtn = document.getElementById('newProjectBtn');
+
+  // Persistência: o estado é serializado sem os ids (que são só chaves de DOM) e,
+  // ao restaurar, reconstruído pelas mesmas fábricas newX() — assim os contadores
+  // continuam monotônicos e arquivos antigos/incompletos ainda carregam.
+  const STORAGE_KEY = 'funnel-doc-generator:v1';
+
+  function serializeState() {
+    const pickVariant = v => ({ label: v.label, codname: v.codname, nextUrl: v.nextUrl });
+    return {
+      version: 1,
+      savedAt: new Date().toISOString(),
+      documentAccount,
+      activeFunnelIndex: Math.max(0, funnels.findIndex(f => f.id === activeFunnelId)),
+      frontGroups: frontGroups.map(g => ({
+        token: g.token,
+        urls: g.urls.map(u => ({ url: u.url })),
+        variants: g.variants.map(pickVariant)
+      })),
+      funnels: funnels.map(f => ({
+        name: f.name,
+        trigger: f.trigger,
+        token: f.token,
+        steps: f.steps.map(s => ({
+          name: s.name,
+          pageUrl: s.pageUrl,
+          nextUrl: s.nextUrl,
+          declineUrl: s.declineUrl,
+          variants: s.variants.map(v => ({ label: v.label, codname: v.codname }))
+        }))
+      }))
+    };
+  }
+
+  function str(v) { return typeof v === 'string' ? v : ''; }
+  function arr(v) { return Array.isArray(v) ? v : []; }
+
+  function hydrateVariant(v) {
+    return newVariant(str(v && v.label), str(v && v.codname), str(v && v.nextUrl));
+  }
+  function hydrateFrontGroup(g) {
+    const group = newFrontGroup();
+    group.token = str(g && g.token);
+    const urls = arr(g && g.urls).map(u => newFrontUrl(str(u && u.url)));
+    const variants = arr(g && g.variants).map(hydrateVariant);
+    if (urls.length) group.urls = urls;
+    if (variants.length) group.variants = variants;
+    return group;
+  }
+  function hydrateStep(s) {
+    const step = newStep(str(s && s.name));
+    step.pageUrl = str(s && s.pageUrl);
+    step.nextUrl = str(s && s.nextUrl);
+    step.declineUrl = str(s && s.declineUrl);
+    const variants = arr(s && s.variants).map(hydrateVariant);
+    if (variants.length) step.variants = variants;
+    return step;
+  }
+  function hydrateFunnel(f) {
+    const funnel = newFunnel(str(f && f.name));
+    funnel.trigger = str(f && f.trigger);
+    funnel.token = str(f && f.token);
+    const steps = arr(f && f.steps).map(hydrateStep);
+    if (steps.length) funnel.steps = steps;
+    return funnel;
+  }
+
+  function applyState(data) {
+    documentAccount = str(data.documentAccount);
+    frontGroups = arr(data.frontGroups).map(hydrateFrontGroup);
+    if (!frontGroups.length) frontGroups = [newFrontGroup()];
+    funnels = arr(data.funnels).map(hydrateFunnel);
+    if (!funnels.length) funnels = [newFunnel('')];
+    activeFunnelId = (funnels[data.activeFunnelIndex] || funnels[0]).id;
+    documentAccountEl.value = documentAccount;
+  }
+
+  function formatTime(date) {
+    return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function persistState() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(serializeState()));
+      saveStatusEl.textContent = `Rascunho salvo automaticamente neste navegador às ${formatTime(new Date())}.`;
+    } catch (err) {
+      saveStatusEl.textContent = 'Não foi possível salvar o rascunho neste navegador — use "Salvar projeto (.json)" para não perder o trabalho.';
+    }
+  }
+
+  function loadPersistedState() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return null;
+      const data = JSON.parse(raw);
+      if (!data || typeof data !== 'object') return null;
+      applyState(data);
+      const savedAt = new Date(data.savedAt);
+      return isNaN(savedAt) ? null : savedAt;
+    } catch (err) {
+      return null;
+    }
+  }
 
   function escapeHtml(str) {
     return String(str)
@@ -887,6 +1036,16 @@
 
     docOut.value = blocksToPlainText(allBlocks);
     renderDocPreview(allBlocks);
+    // Toda mutação termina aqui, então este é o único ponto de autosave.
+    persistState();
+  }
+
+  function renderAll() {
+    renderFrontGroupsDOM();
+    renderFunnelTabs();
+    renderActiveFunnelForm();
+    renderStepsDOM();
+    renderDoc();
   }
 
   stepsContainer.addEventListener('input', (e) => {
@@ -1039,22 +1198,65 @@
     renderDoc();
   });
 
-  downloadBtn.addEventListener('click', () => {
-    const blob = new Blob([docOut.value], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+  function fileSlug() {
     const names = funnels.map(f => f.name.trim()).filter(Boolean);
     const base = names.length ? names.join('_') : 'funis';
-    const slug = base
+    return base
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/(^-|-$)/g, '') || 'funis';
+  }
+
+  function downloadFile(content, filename, type) {
+    const blob = new Blob([content], { type });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
     a.href = url;
-    a.download = `${slug}.txt`;
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  }
+
+  downloadBtn.addEventListener('click', () => {
+    downloadFile(docOut.value, `${fileSlug()}.txt`, 'text/plain;charset=utf-8');
+  });
+
+  saveProjectBtn.addEventListener('click', () => {
+    downloadFile(JSON.stringify(serializeState(), null, 2), `${fileSlug()}.json`, 'application/json;charset=utf-8');
+  });
+
+  openProjectBtn.addEventListener('click', () => {
+    openProjectInput.click();
+  });
+
+  openProjectInput.addEventListener('change', () => {
+    const file = openProjectInput.files[0];
+    openProjectInput.value = '';
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      let data;
+      try {
+        data = JSON.parse(reader.result);
+      } catch (err) {
+        data = null;
+      }
+      if (!data || typeof data !== 'object' || !Array.isArray(data.funnels)) {
+        alert('Este arquivo não é um projeto válido do Gerador de Documento de Funil.');
+        return;
+      }
+      applyState(data);
+      renderAll();
+    };
+    reader.readAsText(file);
+  });
+
+  newProjectBtn.addEventListener('click', () => {
+    if (!confirm('Começar um documento novo? Tudo que está preenchido agora será apagado deste navegador. Se quiser guardar, use "Salvar projeto (.json)" antes.')) return;
+    applyState({});
+    renderAll();
   });
 
   docPreview.addEventListener('click', async (e) => {
@@ -1100,11 +1302,11 @@
     });
   });
 
-  renderFrontGroupsDOM();
-  renderFunnelTabs();
-  renderActiveFunnelForm();
-  renderStepsDOM();
-  renderDoc();
+  const restoredAt = loadPersistedState();
+  renderAll();
+  if (restoredAt) {
+    saveStatusEl.textContent = `Rascunho restaurado (último salvamento em ${restoredAt.toLocaleDateString('pt-BR')} às ${formatTime(restoredAt)}).`;
+  }
 })();
 </script>
 </body>

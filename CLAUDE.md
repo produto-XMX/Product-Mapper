@@ -14,7 +14,7 @@ Não há servidor de desenvolvimento nem etapa de build. Para testar mudanças, 
 
 ## Arquitetura
 
-Tudo vive em uma única IIFE no final do `index.html`. O modelo de dados é uma árvore, mantida inteiramente em memória (sem persistência):
+Tudo vive em uma única IIFE no final do `index.html`. O modelo de dados é uma árvore, mantida em memória e espelhada no `localStorage` (ver "Persistência", abaixo):
 
 ```
 documentAccount                    — account_id (a=) único para TODO o documento — front e todos os funis usam este mesmo valor
@@ -56,3 +56,5 @@ Blocos `heading`/`title` aceitam um `meta` opcional: um sufixo " — texto" que 
 **Quatro templates de script da BuyGoods estão hardcoded**: `buildScript()` (pixel de tracking, indexado por `account` + `codname`s unidos por vírgula — o único template compartilhado entre front e etapas, pois só o `product=` varia), `buildFrontConversionScript()` e `buildUpsellConversionScript()` (dois templates de iframe de conversão *distintos e não intercambiáveis*, cada um indexado por `account` + `token` — ver acima a diferença de `setTimeout`/`conversion=1`/`o=`/`ut=`) e `buildDisclaimerScript()` (snippet de disclaimer, indexado só por `account`). Todos são snippets por página extraídos do próprio embed code da BuyGoods — trate o corpo dessas strings como opaco/exato e altere apenas os valores interpolados `acc`/`product`/`tok`.
 
 **Fonte de verdade para copiar/baixar:** `#docOut` é um `<textarea>` real mantido no DOM mas visualmente oculto (`.visually-hidden`, não `display:none`) para que `.select()` continue funcionando no fallback via `execCommand('copy')`. `#docPreview` é somente apresentação — a lógica de clipboard e download de arquivo sempre lê de `docOut.value`, nunca faz scraping do HTML do preview.
+
+**Persistência:** `renderDoc()` termina chamando `persistState()`, que grava `serializeState()` no `localStorage` (chave `funnel-doc-generator:v1`) — como toda mutação já termina em `renderDoc()`, esse é o único ponto de autosave; não adicione chamadas de save espalhadas pelos listeners. O mesmo JSON é o formato do arquivo "Salvar projeto (.json)" / "Abrir projeto". O JSON não guarda os `id`s (são só chaves de DOM) e guarda o funil ativo como índice (`activeFunnelIndex`); `applyState()` reconstrói tudo pelas fábricas `newX()` via `hydrateX()`, tolerando campos ausentes, e depois `renderAll()` re-renderiza todos os containers. Ao adicionar um campo novo ao modelo, inclua-o em `serializeState()` e no `hydrateX()` correspondente.
